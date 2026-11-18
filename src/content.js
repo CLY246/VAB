@@ -158,8 +158,3 @@ export const furtherWork = [
   'Use travel-time and cross-boundary data to assess access from home and work.',
   'Use applications, waiting lists or enrolment records to study demand, and service quality and family preferences to study value.',
 ];
-
-export const recommendations = {
-  families: 'Start with the programme and intended month, then compare more than one area that fits your travel routine. Check the listed fee and reported status separately. Confirm the current vacancy, waiting time and household cost directly with the centre.',
-  planners: 'Review low availability relative to child population alongside persistent Limited or Full reports. Check small denominators, unmatched records and fee coverage before prioritising areas for follow-up.',
-};

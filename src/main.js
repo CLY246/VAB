@@ -1,8 +1,10 @@
 import './style.css';
-import { assumptions, availabilityPathNote, dashboardCopy, deepDiveNotes, findings, furtherWork, recommendations } from './content.js';
+import { assumptions, availabilityPathNote, dashboardCopy, deepDiveNotes, findings, furtherWork } from './content.js';
 import { tableauViews } from './tableauConfig.js';
 import { renderDeepDive } from './deepDive.js';
 import { mountTableau } from './tableauEmbed.js';
+import { finderSection } from './finderSection.js';
+import { mountPreschoolFinder } from './preschoolFinder.js';
 
 const app = document.querySelector('#app');
 
@@ -55,13 +57,12 @@ function dashboardPanel(key, view, index) {
 
 app.innerHTML = `
   <header class="site-header">
-    <a class="wordmark" href="#top" aria-label="Preschool Access in Singapore home">PA<span>/</span>SG</a>
+    <a class="wordmark" href="#top" aria-label="Preschooled home">Preschooled</a>
     <nav aria-label="Primary navigation">
       <a href="#problem">Problem</a>
       <a href="#findings">Findings</a>
       <a href="#dashboards">Dashboards</a>
       <a href="#deep-dive">Availability &amp; fees</a>
-      <a href="#recommendations">Recommendations</a>
       <a href="#find-a-preschool">Find a Preschool</a>
       <a href="#sources">Methods</a>
     </nav>
@@ -70,15 +71,12 @@ app.innerHTML = `
   <main id="top">
     <section class="hero section-shell">
       <div class="hero-copy">
-        <p class="kicker">A visual frame for Singapore</p>
-        <h1>Preschool access<br /><em>is a place-based question.</em></h1>
+        <h1>Visual analytics for preschool accessibility and affordability in Singapore</h1>
+        <p class="hero-team">Team 9</p>
         <p class="lede">How close is a place? What does it cost? And will a centre report availability for the programme and start month a family needs?</p>
         <a class="button button-dark" href="#dashboards">Explore dashboards <span aria-hidden="true">↓</span></a>
       </div>
-      <div class="hero-stamp" aria-hidden="true">
-        <span>LOCATION</span><span>FEES</span><span>AVAILABILITY</span>
-        <b>SG</b>
-      </div>
+      <img class="hero-illustration" src="${import.meta.env.BASE_URL}images/preschool-hero.jpg" width="900" height="900" alt="" fetchpriority="high">
     </section>
 
     <section id="problem" class="section-shell section-grid">
@@ -137,26 +135,7 @@ app.innerHTML = `
       </div>
     </section>
 
-    <section id="recommendations" class="recommendations">
-      <div class="section-shell">
-        <div class="section-heading"><div><p class="kicker">05 / Recommendations</p><h2>From pattern to action.</h2></div></div>
-        <div class="recommendation-grid">
-          <article><p class="kicker">For families</p><h3>Make the search more legible.</h3><p>${recommendations.families}</p></article>
-          <article><p class="kicker">For planners</p><h3>Plan with a sharper signal.</h3><p>${recommendations.planners}</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section id="find-a-preschool" class="section-shell section-grid">
-      <div>
-        <p class="kicker">06 / Find a Preschool</p>
-        <h2>Take your shortlist to LifeSG.</h2>
-      </div>
-      <div class="body-copy">
-        <p>Use the official preschool search to enter your programme and search by address or centre name. Contact the centre to confirm current availability, waiting time and what your household would pay after any subsidies.</p>
-        <a class="button button-dark" href="https://go.gov.sg/preschoolsearch">Search for a preschool on LifeSG <span aria-hidden="true">↗</span></a>
-      </div>
-    </section>
+    ${finderSection}
 
     <section id="sources" class="section-shell sources">
       <p class="kicker">07 / Methods &amp; Limitations</p>
@@ -175,6 +154,8 @@ app.innerHTML = `
   </main>
   <footer class="site-footer section-shell"><span>Preschool Access in Singapore</span><a href="#top">Back to top ↑</a></footer>
 `;
+
+mountPreschoolFinder(document.querySelector('#find-a-preschool'));
 
 const tabs = [...document.querySelectorAll('[data-tab]')];
 
