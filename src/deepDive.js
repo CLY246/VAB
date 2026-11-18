@@ -264,23 +264,26 @@ function budgetChart(container, data) {
   render(current());
 }
 
-export function renderDeepDive(container) {
-  for (const [file, draw] of [['availability-paths', availabilityChart], ['budget-options', budgetChart]]) {
-    const target = document.createElement('div');
-    target.textContent = 'Loading chart data…';
-    container.append(target);
-    fetch(`${import.meta.env.BASE_URL}data/${file}.json`)
-      .then((response) => {
-        if (!response.ok) throw new Error(`Chart data request returned ${response.status}`);
-        return response.json();
-      })
-      .then((data) => {
-        target.replaceChildren();
-        draw(target, data);
-      })
-      .catch((error) => {
-        console.error(error);
-        target.textContent = 'This chart could not load. Reload the page to try again.';
-      });
-  }
+const charts = {
+  'availability-paths': availabilityChart,
+  'budget-options': budgetChart,
+};
+
+export function renderDeepDive(target, file) {
+  if (target.dataset.initialized) return;
+  target.dataset.initialized = 'true';
+  target.textContent = 'Loading chart data…';
+  fetch(`${import.meta.env.BASE_URL}data/${file}.json`)
+    .then((response) => {
+      if (!response.ok) throw new Error(`Chart data request returned ${response.status}`);
+      return response.json();
+    })
+    .then((data) => {
+      target.replaceChildren();
+      charts[file](target, data);
+    })
+    .catch((error) => {
+      console.error(error);
+      target.textContent = 'This chart could not load. Reload the page to try again.';
+    });
 }

@@ -1,9 +1,57 @@
 import './style.css';
-import { findings, recommendations } from './content.js';
+import { assumptions, availabilityPathNote, dashboardCopy, deepDiveNotes, findings, furtherWork, recommendations } from './content.js';
 import { tableauViews } from './tableauConfig.js';
 import { renderDeepDive } from './deepDive.js';
+import { mountTableau } from './tableauEmbed.js';
 
 const app = document.querySelector('#app');
+
+const dashboardEntries = Object.entries(tableauViews);
+
+function analysisDetails({ title, selection, paragraphs, why, detail, dashboard, linkLabel }) {
+  return `<details class="analysis-detail">
+    <summary>${title}</summary>
+    ${selection ? `<p class="analysis-reference">${selection}</p>` : ''}
+    ${paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join('')}
+    ${why ? `<p><strong>Why it matters.</strong> ${why}</p>` : ''}
+    ${detail ? analysisDetails(detail) : ''}
+    ${dashboard ? `<p><a href="#panel-${dashboard}">${linkLabel ?? `Explore ${tableauViews[dashboard].title}`}</a></p>` : ''}
+  </details>`;
+}
+
+function dashboardPanel(key, view, index) {
+  const copy = dashboardCopy[key];
+  return `
+    <div id="panel-${key}" class="tab-panel" role="tabpanel" aria-labelledby="tab-${key}" ${index ? 'hidden' : ''}>
+      <div class="dashboard-copy">
+        <h3>${view.title}</h3>
+        <p class="dashboard-question">${copy.question}</p>
+        <h4>What it shows</h4>
+        <p>${copy.purpose}</p>
+        <p>${copy.scope}</p>
+        <p><strong>Using Tableau</strong> ${copy.controls}</p>
+      </div>
+      <div class="tableau-frame" data-tableau="${key}">
+        <div class="tableau-tools">
+          <a href="${view.openUrl}" target="_blank" rel="noopener">Open in Tableau Public <span aria-hidden="true">↗</span></a>
+          <span>Scroll within the dashboard frame on a narrow screen.</span>
+        </div>
+        <p class="loader" role="status">Tableau loads when you reach this dashboard.</p>
+        <div class="tableau-viewport" role="region" aria-label="${view.title} Tableau dashboard" tabindex="0" hidden></div>
+      </div>
+      <div class="dashboard-copy dashboard-reading">
+        <p class="dashboard-reference">Fixed reference selection · ${copy.selection}</p>
+        ${analysisDetails({ title: 'Key insights', paragraphs: copy.insights })}
+        ${analysisDetails({ title: 'Why it matters', paragraphs: [copy.implication] })}
+      </div>
+      ${copy.chart ? `<section id="${copy.chart}" class="dashboard-deep-dive" aria-label="${view.title} deep dive">
+        <p class="kicker">Deep Dive · Local chart</p>
+        <p>These chart controls apply only to the visualisation below.</p>
+        <div data-chart="${copy.chart}"></div>
+        ${copy.chart === 'availability-paths' ? analysisDetails(availabilityPathNote) : ''}
+      </section>` : ''}
+    </div>`;
+}
 
 app.innerHTML = `
   <header class="site-header">
@@ -12,8 +60,10 @@ app.innerHTML = `
       <a href="#problem">Problem</a>
       <a href="#findings">Findings</a>
       <a href="#dashboards">Dashboards</a>
-      <a href="#deep-dive">Deep dive</a>
-      <a href="#recommendations">So what?</a>
+      <a href="#deep-dive">Availability &amp; fees</a>
+      <a href="#recommendations">Recommendations</a>
+      <a href="#find-a-preschool">Find a Preschool</a>
+      <a href="#sources">Methods</a>
     </nav>
   </header>
 
@@ -48,11 +98,13 @@ app.innerHTML = `
 
     <section id="findings" class="section-shell findings-section">
       <div class="section-heading">
-        <div><p class="kicker">02 / Key findings</p><h2>Three lenses on access.</h2></div>
-        <p class="section-note">Editable placeholders — replace with approved findings and figures.</p>
+        <div><h2>Top five key findings</h2>
+          <p class="findings-lede">Preschool access is uneven across Singapore. Having many centres nearby does not necessarily mean having many options relative to the child population, within budget, or consistently reporting availability.</p>
+        </div>
+        <p class="section-note">These findings describe fixed reference selections. Tableau filters change the dashboards only.</p>
       </div>
       <div class="finding-grid">
-        ${findings.map((item) => `<article class="finding-card"><p class="kicker">${item.eyebrow}</p><h3>${item.title}</h3><p>${item.text}</p><span class="card-mark" aria-hidden="true">↗</span></article>`).join('')}
+        ${findings.map((item) => `<article class="finding-card"><p class="kicker">${item.eyebrow}</p><h3>${item.title}</h3><p class="finding-reference">${item.selection}</p><p>${item.text}</p><a href="#panel-${item.key}">Explore ${tableauViews[item.key].title}</a></article>`).join('')}
       </div>
     </section>
 
@@ -60,33 +112,34 @@ app.innerHTML = `
       <div class="section-shell">
         <div class="section-heading">
           <div><p class="kicker">03 / Explore dashboards</p><h2>See the patterns by place.</h2></div>
-          <p class="section-note">Each view loads when you open its tab.</p>
+          <p class="section-note">Each Tableau workbook has its own controls. Selections apply within that workbook.</p>
         </div>
-        <div class="tabs" data-tabs>
+        <div class="tabs">
           <div class="tab-list" role="tablist" aria-label="Preschool access dashboards">
-            <button id="tab-geography" role="tab" aria-selected="true" aria-controls="panel-geography" tabindex="0" data-tab="geography">Where places are available</button>
-            <button id="tab-affordability" role="tab" aria-selected="false" aria-controls="panel-affordability" tabindex="-1" data-tab="affordability">Affordability and access</button>
-            <button id="tab-constraints" role="tab" aria-selected="false" aria-controls="panel-constraints" tabindex="-1" data-tab="constraints">Persistent constraints</button>
+            ${dashboardEntries.map(([key, view], index) => `<button id="tab-${key}" role="tab" aria-selected="${index === 0}" aria-controls="panel-${key}" tabindex="${index === 0 ? 0 : -1}" data-tab="${key}">${view.title}</button>`).join('')}
           </div>
-          ${[
-            ['geography', 'Where places are available', 'Explore how reported availability varies across Singapore’s planning areas.'],
-            ['affordability', 'Affordability and access', 'Compare fee levels with the places families can realistically reach.'],
-            ['constraints', 'Persistent availability constraints', 'Trace where reported constraints remain across snapshots.'],
-          ].map(([key, title, intro], index) => `<div id="panel-${key}" class="tab-panel" role="tabpanel" aria-labelledby="tab-${key}" ${index ? 'hidden' : ''} data-panel="${key}"><p class="kicker">${title}</p><p class="panel-intro">${intro}</p><div class="tableau-frame" data-tableau="${key}"><span class="loader">Dashboard loading area</span></div></div>`).join('')}
+          ${dashboardEntries.map(([key, view], index) => dashboardPanel(key, view, index)).join('')}
         </div>
       </div>
     </section>
 
     <section id="deep-dive" class="section-shell deep-dive">
       <div class="section-heading">
-        <div><p class="kicker">04 / Deep dive</p><h2>Deep Dive</h2></div>
+        <div><p class="kicker">04 / Deep Dive</p><h2>How availability changes and what a higher budget adds</h2></div>
+        <p class="section-note">These stories use fixed reference selections. The linked dashboards and local charts let you explore other selections.</p>
       </div>
-      <div id="deep-dive-charts"></div>
+      <div class="analysis-stack">
+        ${deepDiveNotes.map(analysisDetails).join('')}
+      </div>
+      <div class="deep-dive-links">
+        <a href="#budget-options">Compare two monthly fee ceilings</a>
+        <a href="#availability-paths">Follow availability across five checks</a>
+      </div>
     </section>
 
     <section id="recommendations" class="recommendations">
       <div class="section-shell">
-        <div class="section-heading"><div><p class="kicker">05 / So what?</p><h2>From pattern to action.</h2></div><p class="section-note">Editable placeholders — tie recommendations to verified findings.</p></div>
+        <div class="section-heading"><div><p class="kicker">05 / Recommendations</p><h2>From pattern to action.</h2></div></div>
         <div class="recommendation-grid">
           <article><p class="kicker">For families</p><h3>Make the search more legible.</h3><p>${recommendations.families}</p></article>
           <article><p class="kicker">For planners</p><h3>Plan with a sharper signal.</h3><p>${recommendations.planners}</p></article>
@@ -94,33 +147,55 @@ app.innerHTML = `
       </div>
     </section>
 
+    <section id="find-a-preschool" class="section-shell section-grid">
+      <div>
+        <p class="kicker">06 / Find a Preschool</p>
+        <h2>Take your shortlist to LifeSG.</h2>
+      </div>
+      <div class="body-copy">
+        <p>Use the official preschool search to enter your programme and search by address or centre name. Contact the centre to confirm current availability, waiting time and what your household would pay after any subsidies.</p>
+        <a class="button button-dark" href="https://go.gov.sg/preschoolsearch">Search for a preschool on LifeSG <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
     <section id="sources" class="section-shell sources">
-      <p class="kicker">06 / Sources and methods</p>
-      <div class="source-grid"><h2>Read the frame carefully.</h2><div><p><strong>Data credits</strong><br />ECDA vacancy and fee data; SingStat population and workplace data; URA planning-area boundaries.</p><p><strong>Definitions</strong><br />The intended start month is the enrolment period. The snapshot date is when the status was observed. Reported statuses are at centre level.</p></div></div>
+      <p class="kicker">07 / Methods &amp; Limitations</p>
+      <div class="source-grid">
+        <h2>Assumptions and limitations</h2>
+        <div class="analysis-stack">
+          <p><strong>Sources.</strong> ECDA Listing of Centres and centre services listings, SingStat’s 2025 General Household Survey and URA planning-area boundaries.</p>
+          ${assumptions.map(analysisDetails).join('')}
+          <details class="analysis-detail">
+            <summary>Further work</summary>
+            <ul>${furtherWork.map((item) => `<li>${item}</li>`).join('')}</ul>
+          </details>
+        </div>
+      </div>
     </section>
   </main>
   <footer class="site-footer section-shell"><span>Preschool Access in Singapore</span><a href="#top">Back to top ↑</a></footer>
 `;
 
-const loadedTabs = new Set();
-function loadTableau(key) {
-  if (loadedTabs.has(key)) return;
-  loadedTabs.add(key);
-  const frame = document.querySelector(`[data-tableau="${key}"]`);
-  const url = tableauViews[key];
-  if (!url) {
-    frame.innerHTML = '<div class="missing-dashboard"><strong>Tableau view coming soon</strong><span>Paste the published view URL in <code>src/tableauConfig.js</code>.</span></div>';
-    return;
-  }
-  const iframe = document.createElement('iframe');
-  iframe.title = `${key} Tableau dashboard`;
-  iframe.src = url;
-  iframe.loading = 'lazy';
-  iframe.allowFullscreen = true;
-  frame.replaceChildren(iframe);
+const tabs = [...document.querySelectorAll('[data-tab]')];
+
+function loadDashboard(tab) {
+  const key = tab.dataset.tab;
+  const panel = document.getElementById(tab.getAttribute('aria-controls'));
+  mountTableau(panel.querySelector('[data-tableau]'), tableauViews[key]);
+  const chart = panel.querySelector('[data-chart]');
+  if (chart) renderDeepDive(chart, chart.dataset.chart);
 }
 
-const tabs = [...document.querySelectorAll('[role="tab"]')];
+function activateTab(tab) {
+  for (const item of tabs) {
+    const selected = item === tab;
+    item.setAttribute('aria-selected', selected);
+    item.tabIndex = selected ? 0 : -1;
+    document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+  }
+  loadDashboard(tab);
+}
+
 tabs.forEach((tab, index) => {
   tab.addEventListener('click', () => activateTab(tab));
   tab.addEventListener('keydown', (event) => {
@@ -131,15 +206,26 @@ tabs.forEach((tab, index) => {
     activateTab(tabs[next]);
   });
 });
-function activateTab(tab) {
-  tabs.forEach((item) => {
-    const selected = item === tab;
-    item.setAttribute('aria-selected', selected);
-    item.tabIndex = selected ? 0 : -1;
-    document.querySelector(`#${item.getAttribute('aria-controls')}`).hidden = !selected;
-  });
-  loadTableau(tab.dataset.tab);
+
+function revealLinkedPanel() {
+  const target = document.getElementById(window.location.hash.slice(1));
+  const panel = target?.closest('.tab-panel');
+  if (!panel) return;
+  activateTab(document.getElementById(panel.getAttribute('aria-labelledby')));
+  requestAnimationFrame(() => target.scrollIntoView());
 }
 
-renderDeepDive(document.querySelector('#deep-dive-charts'));
-loadTableau('geography');
+window.addEventListener('hashchange', revealLinkedPanel);
+document.querySelectorAll('a[href^="#"]').forEach((link) => {
+  link.addEventListener('click', () => {
+    if (link.hash === window.location.hash) revealLinkedPanel();
+  });
+});
+revealLinkedPanel();
+
+const observer = new IntersectionObserver(([entry]) => {
+  if (!entry.isIntersecting) return;
+  observer.disconnect();
+  loadDashboard(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true'));
+}, { rootMargin: '220px' });
+observer.observe(document.querySelector('.tab-list'));

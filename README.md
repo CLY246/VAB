@@ -4,8 +4,10 @@ A static Vite site for exploring how preschool access varies by location, fees a
 
 ## Run locally
 
+Use Node.js 22.12 or later on the Node 22 release line.
+
 ```bash
-npm install
+npm ci --include=optional
 npm run dev
 ```
 
@@ -18,11 +20,16 @@ npm run preview
 
 ## Replace project content
 
-- **Approved findings:** edit the three cards in `src/content.js`.
+- **Dashboard explanations and findings:** edit the reference selections, findings and interpretation notes in `src/content.js`. The Key Findings cards reuse the same copy.
 - **Recommendations:** edit the Families and Planners copy in `src/content.js`.
-- **Tableau Public views:** paste the three published view URLs into `src/tableauConfig.js` (`geography`, `affordability`, and `constraints`). Each dashboard is loaded only the first time its tab is opened; a missing URL displays an intentional placeholder.
 - **Deep Dive charts:** edit `src/deepDive.js`. The site loads both generated files from `public/data` using the Vite base URL.
 - **Layout and visual style:** edit `src/main.js` and `src/style.css`.
+
+## Replace a Tableau Public dashboard
+
+Open `src/tableauConfig.js` and update the `publishedView` entry for `geography`, `affordability` or `persistence`. From Tableau Public’s Share embed code, copy the published view path after `/views/` or the older embed’s `name` value. Decode `&#47;` to `/` if present. The helper uses that exact path for the embed and the Open in Tableau Public link.
+
+Set the last two arguments to the published desktop width and height in pixels. Narrow screens can scroll inside the frame or open Tableau Public directly. The Tableau v3 player is loaded once. Each workbook is mounted when first needed and remains mounted while visitors switch tabs. Update the reference selection and findings in `src/content.js` if the published dashboard changes.
 
 ## Refresh the Deep Dive data
 
