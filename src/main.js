@@ -1,7 +1,7 @@
 import './style.css';
 import { findings, recommendations } from './content.js';
 import { tableauViews } from './tableauConfig.js';
-import { renderDeepDivePlaceholder } from './deepDive.js';
+import { renderDeepDive } from './deepDive.js';
 
 const app = document.querySelector('#app');
 
@@ -79,15 +79,9 @@ app.innerHTML = `
 
     <section id="deep-dive" class="section-shell deep-dive">
       <div class="section-heading">
-        <div><p class="kicker">04 / Deep dive</p><h2>Did the same preschool options open up or fill up?</h2></div>
-        <p class="section-note">A matched centre–programme view across reporting dates.</p>
+        <div><p class="kicker">04 / Deep dive</p><h2>Deep Dive</h2></div>
       </div>
-      <div class="chart-controls">
-        <label>Programme<select><option>All programmes</option><option>Infant care</option><option>Child care</option> </select></label>
-        <label>Intended start month<select><option>All months</option><option>January</option><option>July</option></select></label>
-        <div class="legend" aria-label="Availability legend"><span><i class="available"></i>Available</span><span><i class="limited"></i>Limited</span><span><i class="full"></i>Full</span></div>
-      </div>
-      <div id="deep-dive-chart"></div>
+      <div id="deep-dive-charts"></div>
     </section>
 
     <section id="recommendations" class="recommendations">
@@ -147,5 +141,5 @@ function activateTab(tab) {
   loadTableau(tab.dataset.tab);
 }
 
-renderDeepDivePlaceholder(document.querySelector('#deep-dive-chart'));
+renderDeepDive(document.querySelector('#deep-dive-charts'));
 loadTableau('geography');
