@@ -49,6 +49,9 @@ export async function mountTableau(container, view) {
     viewport.append(viz);
   } catch (error) {
     window.clearTimeout(slow);
+    // Allow a later tab visit to retry instead of caching the failed player import.
+    library = undefined;
+    initialized.delete(container);
     viewport.hidden = true;
     fail('The Tableau player could not load. Use the link to open the view directly.');
     console.error(error);

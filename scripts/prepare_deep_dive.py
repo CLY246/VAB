@@ -13,6 +13,22 @@ LEVELS = dict(zip(PROGRAMMES, ('Infant (2 to 18 mths)', 'Playgroup (18 mths to 2
 PERIODS = ['Current', 'Next', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh']
 STATUSES = ['Available', 'Limited', 'Full']
 
+# Calendar month that each listing's "current_month" columns refer to, keyed by download date.
+# Set explicitly per file; never inferred from the download date.
+# The 12 Oct 2026 download is an older ECDA dataset version: its latest last_updated is
+# 24 Sep 2026 (every other file's latest is the day before download), and its month columns
+# agree with the 19 Oct file at 92 to 96% when shifted one month but only 84 to 87% unshifted.
+# Evidence: agents/data/2026-11-19-realignment.md (T9 verification, 19 Nov 2026).
+LISTING_MONTHS = {
+    '2026-10-12': '2026-09',
+    '2026-10-19': '2026-10',
+    '2026-10-24': '2026-10',
+    '2026-11-01': '2026-11',
+    '2026-11-14': '2026-11',
+}
+# Matched report rows exported from the Visualisation_3_final v3 workbook (scripts/export_v3_reports.py).
+REPORTS = 'Processed/preschool_factor_reports_v3.csv'
+
 
 def rows(path, encoding='utf-8-sig', delimiter=','):
     with path.open(encoding=encoding, newline='') as source:
@@ -26,28 +42,33 @@ def month(date, offset):
 
 
 def code(value):
-    return '' if value.strip().lower() in ('', 'na') else value.strip()
+    # Placeholder codes must never act as an identifier that joins unrelated rows.
+    return '' if value.strip().lower() in ('', 'na', 'n/a', 'nil', 'null', '-') else value.strip()
 
 
 def availability():
     reports = defaultdict(set)
-    for row in rows(DATA / 'Processed/preschool_factor_analysis.csv', 'utf-16', '\t'):
-        if row['Data section'] == 'Reports':
-            key = (row['Centre code'], row['Programme'], row['Enrolment month'], row['Snapshot date'])
-            assert key not in reports, ('Duplicate factor report', key)
-            reports[key].add(row['Reported status'])
+    for row in rows(DATA / REPORTS):
+        key = (row['centre_code'], row['programme'], row['start_month'], row['snapshot_date'])
+        assert key not in reports, ('Duplicate factor report', key)
+        reports[key].add(row['status'])
     dates = sorted({k[3] for k in reports})
-    assert len(dates) == 5
-    months = sorted(set.intersection(*({month(d, i) for i in range(7)} for d in dates)))
+    assert dates == sorted(LISTING_MONTHS), ('Every listing needs an explicit reference month', dates)
+    # Intended start months covered by all five listings.
+    months = sorted(set.intersection(*({month(LISTING_MONTHS[d], i) for i in range(7)} for d in dates)))
+    assert sorted({k[2] for k in reports}) == months, 'Report rows must cover exactly the common window'
+    last_updated = {}
     raw = defaultdict(set)
     uncoded = Counter()
     duplicates = 0
     for date in dates:
         _, mm, dd = date.split('-')
-        for row in rows(DATA / f'Raw/ListingofCentres {dd}-{mm}.csv'):
+        listing = list(rows(DATA / f'Raw/ListingofCentres {dd}-{mm}.csv'))
+        last_updated[date] = max(r['last_updated'] for r in listing if r['last_updated'][:4].isdigit())
+        for row in listing:
             for programme, label in PROGRAMMES.items():
                 for i, period in enumerate(PERIODS):
-                    start = month(date, i)
+                    start = month(LISTING_MONTHS[date], i)
                     if start not in months:
                         continue
                     status = row[f'{programme.lower()}_vacancy_{period.lower()}_month']
@@ -97,7 +118,8 @@ def availability():
             assert total * len(dates) == len(matched_keys)
     assert sum(sum(n for _, n in g['paths']) for m in groups.values() for g in m.values()) * 5 == len(reports)
     print('Availability factor report keys:', len(reports), 'raw duplicate coded report rows:', duplicates)
-    return {'dates': dates, 'groups': groups}
+    return {'dates': dates, 'dataMonths': [LISTING_MONTHS[d] for d in dates],
+            'lastUpdated': [last_updated[d] for d in dates], 'groups': groups}
 
 
 def affordability():

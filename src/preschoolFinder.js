@@ -10,7 +10,7 @@ const money = (cents) => `S$${displayFee.format(cents / 100)}`;
 const monthName = (month) => displayMonth.format(new Date(`${month}-01`));
 const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-function lookupLocal(centres, query) {
+export function lookupLocal(centres, query) {
   const normalized = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const target = normalized(query);
   if (!target) return [];
@@ -22,15 +22,16 @@ function lookupLocal(centres, query) {
       ? `${centre.address}, Singapore ${centre.postal}` : centre.address;
     const address = normalized(label);
     if (postal ? centre.postal !== target : !target.split(' ').every((word) => address.split(' ').includes(word))) continue;
-    const key = `${address}|${centre.point.join(',')}`;
+    // A postal code names one location, so preschools sharing it collapse to one choice.
+    const key = postal ? centre.point.join(',') : `${address}|${centre.point.join(',')}`;
     matches.set(key, { label, point: centre.point });
   }
   return [...matches.values()].slice(0, 8);
 }
 
-function explanation(option, weights) {
+export function explanation(option, weights) {
   const reasons = {
-    fee: option.components.fee > 0 ? `Its listed fee is ${money(option.fee)}` : 'Its listed fee is at your ceiling',
+    fee: option.components.fee > 0 ? `Its listed fee is ${money(option.fee)}` : 'Its listed fee is at your limit',
     distance: `It is ${option.distance.toFixed(2)} km away in a straight line`,
     availability: `It reported ${statusLabels[option.status]}`,
   };
@@ -38,6 +39,17 @@ function explanation(option, weights) {
     .sort((a, b) => option.contributions[b] - option.contributions[a])[0];
   if (!option.contributions[strongest]) return 'This centre meets your requirements. The selected priorities contributed zero points.';
   return `${factors[strongest]} contributed the most points. ${reasons[strongest]}.${strongest !== 'availability' ? ` It reported ${statusLabels[option.status]}.` : ''}`;
+}
+
+export function recoveryActions(search) {
+  const actions = [
+    search.radius < 10 ? 'widen the radius' : '',
+    'revise the fee limit',
+    'compare another supported start month',
+    search.availableOnly ? 'include Limited reports' : '',
+    search.scheme ? 'remove the scheme restriction' : '',
+  ].filter(Boolean);
+  return `${actions.slice(0, -1).join(', ')} or ${actions.at(-1)}`;
 }
 
 function renderOption(option, index, search, weights, date, basis) {
@@ -54,7 +66,7 @@ function renderOption(option, index, search, weights, date, basis) {
     </div>
     <p>${esc(search.programme)} · ${monthName(search.month)}<br>
       <strong>${statusLabels[status]}</strong> reported on ${date}</p>
-    <p><strong>${money(fee)} / month</strong> · ${distance.toFixed(2)} km straight-line<br><small>${basis}</small></p>
+    <p><strong>${money(fee)} / month</strong> · ${distance.toFixed(2)} km in a straight line<br><small>${basis}</small></p>
     <p>${esc(centre.address || 'Address unavailable')}${centre.postal && !centre.address.includes(centre.postal) ? ` · ${esc(centre.postal)}` : ''}<br>${esc(centre.scheme)}</p>
     ${contacts.length ? `<p class="finder-contact">${contacts.join(' · ')}</p>` : ''}
     <div class="finder-bar" aria-hidden="true">${Object.keys(factors).map((key) => `<span class="finder-bar-${key}" style="width:${contributions[key]}%"></span>`).join('')}</div>
@@ -155,7 +167,7 @@ export function mountPreschoolFinder(root) {
   }
 
   const popup = (option) => `<strong>${esc(option.centre.name)}</strong><br>${money(option.fee)} / month<br>
-    ${option.distance.toFixed(2)} km straight-line · ${statusLabels[option.status]}<br>Match score ${option.score.toFixed(1)} / 100`;
+    ${option.distance.toFixed(2)} km in a straight line · ${statusLabels[option.status]}<br>Match score ${option.score.toFixed(1)} / 100`;
 
   function renderResults() {
     const normalized = weights();
@@ -172,7 +184,7 @@ export function mountPreschoolFinder(root) {
       <p><strong>${eligible.length} eligible ${eligible.length === 1 ? 'option' : 'options'}</strong> · ${effective}</p>
       <p>${unknownFees} otherwise eligible nearby ${unknownFees === 1 ? 'option lacks a' : 'options lack a'} comparable fee.</p>
       ${missingCoordinates ? `<p>${missingCoordinates} ${missingCoordinates === 1 ? 'option matching the programme, month, status and scheme lacks' : 'options matching the programme, month, status and scheme lack'} coordinates. Their distance is unknown.</p>` : ''}
-      ${!eligible.length ? `<p>No options met these requirements. You can widen the radius, revise the fee limit, or compare another supported start month${search.availableOnly ? ', include Limited' : ''}${search.scheme ? ', or remove the scheme restriction' : ''}. Then select Find my matches again.</p>` : ''}`;
+      ${!eligible.length ? `<p>No options met these requirements. You can ${recoveryActions(search)}. Then select Find my matches again.</p>` : ''}`;
     resultList.innerHTML = ranked.slice(0, 5).map((option, index) => renderOption(option, index, search, normalized, date, data.feeBasis)).join('');
     if (!map) resultList.querySelectorAll('[data-show-map]').forEach((button) => { button.disabled = true; });
     map?.drawResults(ranked);
@@ -298,7 +310,7 @@ export function mountPreschoolFinder(root) {
       availableOnly: fields.status.value === 'A', scheme: fields.scheme.value,
     };
     if (!(search.fee > 0) || ![1, 3, 5, 10].includes(search.radius)) {
-      show(resultsStatus, 'Choose a monthly fee ceiling and a supported radius.');
+      show(resultsStatus, 'Choose a monthly fee limit and a supported radius.');
       return;
     }
     try {
@@ -326,7 +338,7 @@ export function mountPreschoolFinder(root) {
     })
     .then((dataset) => {
       data = dataset;
-      show(q('[data-snapshot]'), `Reported vacancy snapshot · ${displayDate.format(new Date(data.snapshot))}${data.feeSourceMonth ? ` · Fee listing ${monthName(data.feeSourceMonth)}` : ''}`);
+      show(q('[data-snapshot]'), `ECDA listing · ${displayDate.format(new Date(data.snapshot))}${data.feeSourceMonth ? ` · Fee listing ${monthName(data.feeSourceMonth)}` : ''}`);
       fields.programme.replaceChildren(...Object.keys(data.programmes).map((label) => new Option(label, label)));
       const schemes = new Set(Object.values(data.centres).map((centre) => centre.scheme));
       for (const scheme of ['Anchor Operator', 'Partner Operator', 'Scheme unlisted']) {

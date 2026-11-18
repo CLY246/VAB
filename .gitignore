@@ -1,4 +1,17 @@
-.DS_Store
-/dist/
-/node_modules/
+# Dependencies and build output
+node_modules/
+dist/
+.vercel/
 
+# Local secrets (OneMap credentials belong in Vercel project settings)
+.env
+.env.*
+
+# Raw and processed source data (about 170 MB) stays local.
+# The site only needs the committed JSON under public/data/.
+src/preschool_access/Data/
+
+# Python and OS clutter
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,3 @@
+# Keep CLI deployments from uploading local source data.
+# The build only reads public/data/*.json.
+src/preschool_access/

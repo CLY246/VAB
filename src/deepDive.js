@@ -6,6 +6,8 @@ const statuses = ['Available', 'Limited', 'Full'];
 const colours = ['var(--teal)', 'var(--limited)', 'var(--full)'];
 const monthLabel = new Intl.DateTimeFormat('en-SG', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const dateLabel = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const longDate = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const shortDay = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const currency = new Intl.NumberFormat('en-SG', { maximumFractionDigits: 2 });
 const money = (n) => `S$${currency.format(n)}`;
 const count = (n) => n.toLocaleString('en-SG');
@@ -57,9 +59,28 @@ function writeTable(table, headers, rows) {
   });
 }
 
+// A check whose listing reflects an earlier month than its download date (the 12 Oct 2026
+// download carries ECDA data last updated by 24 Sep 2026) is labelled with that update date.
+export function checkDataNotes(data) {
+  return data.dates.map((date, i) => {
+    const dataMonth = data.dataMonths?.[i];
+    if (!dataMonth || dataMonth === date.slice(0, 7)) return '';
+    const updated = data.lastUpdated?.[i];
+    return updated ? `ECDA data to ${shortDay.format(new Date(updated))}` : `ECDA data for ${monthLabel.format(new Date(`${dataMonth}-01`))}`;
+  });
+}
+
+export function windowNote(data, windowMonths) {
+  const span = `${monthLabel.format(new Date(`${windowMonths[0]}-01`))} to ${monthLabel.format(new Date(`${windowMonths.at(-1)}-01`))}`;
+  const early = data.dates.map((date, i) => [date, data.dataMonths?.[i], data.lastUpdated?.[i]])
+    .filter(([date, dataMonth]) => dataMonth && dataMonth !== date.slice(0, 7))
+    .map(([date, dataMonth, updated]) => `The listing downloaded on ${dateLabel.format(new Date(date))} reflects ECDA data last updated by ${longDate.format(new Date(updated))}, so its months are read from ${monthLabel.format(new Date(`${dataMonth}-01`))}.`);
+  return `${early.join(' ')} Intended start months run from ${span}, the months covered by all five listings.`.trim();
+}
+
 function availabilityChart(container, data) {
-  const ui = panel(container, 'availability-paths-title', 'Preschool availability paths across five checks',
-    'Follow the same centre–programme options across five reporting dates to see which stayed Available, which remained constrained, and which changed status.',
+  const ui = panel(container, 'availability-paths-title', 'Preschool availability paths across five listings',
+    'Follow the same options (one centre offering one programme) across five ECDA listings to see which stayed Available, which stayed Limited or Full, and which changed status.',
     'For the same programme and intended start month, how did individual options move between Available, Limited and Full?',
     'This extends the Tableau persistence dashboard by showing the direction and sequence of status changes.');
   const current = filters(ui.controls, data.groups, render);
@@ -70,17 +91,21 @@ function availabilityChart(container, data) {
     select(this).append('b').text(status);
   });
   const dates = data.dates.map((date) => dateLabel.format(new Date(date)));
+  const checkNotes = checkDataNotes(data);
+  const fullDates = dates.map((date, i) => checkNotes[i] ? `${date} (${checkNotes[i]})` : date);
+  const windowMonths = Object.keys(Object.values(data.groups)[0]);
+  ui.article.append('p').attr('class', 'dive-note').text(windowNote(data, windowMonths));
   const overlap = 'The summaries can overlap. An option that switches between Limited and Full changes exact status and remains constrained throughout.';
   ui.article.append('p').attr('class', 'dive-note').text(overlap);
-  const prompt = 'Hover, focus or select a ribbon to read its five-date path.';
+  const prompt = 'Hover, focus or select a ribbon to read its path across the five listings.';
 
   function render(group) {
     const paths = group.paths.map(([key, n]) => ({ key, n, codes: Array.from(key, Number), y: [] }))
       .sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
     const total = paths.reduce((sum, d) => sum + d.n, 0);
     const totals = [
-      ['Available at every check', (d) => d.key === '00000'],
-      ['Limited or Full at every check', (d) => !d.key.includes('0')],
+      ['Available at every listing', (d) => d.key === '00000'],
+      ['Limited or Full at every listing', (d) => !d.key.includes('0')],
       ['Changed exact status at least once', (d) => new Set(d.codes).size > 1],
     ];
     ui.summary.selectAll('*').remove();
@@ -94,14 +119,18 @@ function availabilityChart(container, data) {
       metric.append('dt').text(label);
       metric.append('dd').text(`${count(n)} (${percent(n, total)})`);
     }
-    ui.detail.text(total ? prompt : 'No options reported a valid status at all five checks.');
+    ui.detail.text(total ? prompt : 'No options reported a valid status at all five listings.');
     ui.svg.selectAll('*').remove();
     ui.svg.attr('viewBox', '0 0 900 385');
     const xs = dates.map((_, i) => 65 + i * 192.5);
     const unit = total ? 230 / total : 0;
     const blocks = [];
     dates.forEach((date, column) => {
-      ui.svg.append('text').attr('x', xs[column]).attr('y', 26).attr('text-anchor', 'middle').text(date);
+      ui.svg.append('text').attr('x', xs[column]).attr('y', 20).attr('text-anchor', 'middle').text(date);
+      if (checkNotes[column]) {
+        ui.svg.append('text').attr('class', 'check-note').attr('x', xs[column]).attr('y', 37)
+          .attr('text-anchor', 'middle').text(checkNotes[column]);
+      }
       let y = 55;
       statuses.forEach((_, code) => {
         const from = y;
@@ -126,7 +155,7 @@ function availabilityChart(container, data) {
       }).join('');
       return `M${top[0]}${curve(top)}L${bottom[0]}${curve(bottom)}Z`;
     }
-    const pathLabel = (d) => `${dates.map((date, i) => `${date} · ${statuses[d.codes[i]]}`).join(' → ')}. ${count(d.n)} options (${percent(d.n, total)}). ${overlap}`;
+    const pathLabel = (d) => `${fullDates.map((date, i) => `${date} · ${statuses[d.codes[i]]}`).join(' → ')}. ${count(d.n)} options (${percent(d.n, total)}). ${overlap}`;
     let pinned = null;
     const marks = ui.svg.selectAll('.ribbon').data(paths).join('path').attr('class', 'ribbon')
       .attr('d', ribbon).attr('fill', (d) => colours[d.codes[0]])
@@ -135,7 +164,7 @@ function availabilityChart(container, data) {
       marks.classed('dimmed', (d) => active && d !== active)
         .classed('highlighted', (d) => d === active)
         .attr('aria-pressed', (d) => d === pinned ? 'true' : 'false');
-      ui.detail.text(active ? pathLabel(active) : total ? prompt : 'No options reported a valid status at all five checks.');
+      ui.detail.text(active ? pathLabel(active) : total ? prompt : 'No options reported a valid status at all five listings.');
     }
     function toggle(d) {
       pinned = pinned === d ? null : d;
@@ -158,7 +187,7 @@ function availabilityChart(container, data) {
       .text((d) => `${statuses[d.code]} · ${count(total ? Math.round(d.height / unit) : 0)}`);
     reset.on('click', () => { pinned = null; highlight(); });
     highlight();
-    writeTable(ui.table, [...dates, 'Options', 'Cohort share'],
+    writeTable(ui.table, [...fullDates, 'Options', 'Cohort share'],
       paths.map((d) => [...d.codes.map((code) => statuses[code]), count(d.n), percent(d.n, total)]));
   }
 
@@ -167,9 +196,9 @@ function availabilityChart(container, data) {
 
 function budgetChart(container, data) {
   const ui = panel(container, 'budget-options-title', 'Additional preschool options at a higher monthly budget',
-    'Compare two monthly fee ceilings to see where a higher budget adds centres reporting Available for your selected programme and intended start month.',
-    'Which planning areas gain the most Available options when the monthly fee ceiling increases?',
-    `This extends the Tableau affordability dashboard by comparing two ceilings within the same ${dateLabel.format(new Date(data.date))} snapshot. Fees are listed Singapore Citizen full-day monthly fees before household-specific subsidies.`);
+    'Compare two monthly fee limits to see where a higher budget adds centres reporting Available for your selected programme and intended start month.',
+    'Which planning areas gain the most Available options when the monthly fee limit increases?',
+    `This extends the Tableau affordability dashboard by comparing two fee limits within the same ${dateLabel.format(new Date(data.date))} listing. Fees are listed Singapore Citizen full day monthly fees before subsidy and GST.`);
   const current = filters(ui.controls, data.groups, render);
   const budget = (label, value) => ui.controls.append('label').text(label).append('input')
     .attr('type', 'number').attr('min', 0).attr('step', '.01').attr('required', true).property('value', value);
@@ -178,7 +207,7 @@ function budgetChart(container, data) {
   const showAll = ui.controls.append('label').attr('class', 'show-areas');
   const checkbox = showAll.append('input').attr('type', 'checkbox');
   showAll.append('span').text('View all areas');
-  ui.article.append('p').attr('class', 'dive-note').text('The initial S$1,300 and S$1,900 ceilings sit near the median and at the upper quartile of listed fees for November 2026 infant-care options with a known area. The median is S$1,290 and the 75th percentile is S$1,900.');
+  ui.article.append('p').attr('class', 'dive-note').text('The starting limits of S$1,300 and S$1,900 sit near the median and at the upper quartile of listed fees for November 2026 infant care options with a known area. The median is S$1,290 and the 75th percentile is S$1,900.');
   for (const input of [lower, higher, checkbox]) input.on('input', () => render(current()));
 
   function render(group) {
@@ -206,7 +235,7 @@ function budgetChart(container, data) {
     const leaders = areas.filter((area) => area.gain > 0 && area.gain === areas[0].gain);
     ui.summary.append('p').text(totalGain
       ? `${count(totalGain)} additional options across ${areas.filter((area) => area.gain > 0).length} areas. Largest gain: ${leaders.map((area) => area.name).join(', ')} (+${leaders[0].gain}). Showing ${visible.length} of ${areas.length} areas.`
-      : 'No planning area gains options between these two ceilings. Try a wider budget range or another programme or start month.');
+      : 'No planning area gains options between these two fee limits. Try a wider budget range or another programme or start month.');
     ui.summary.append('p').text(`${count(group.missingFee)} coded Available options had no single qualifying positive fee. ${count(group.missingLocation)} coded Available options lacked a usable planning area; these counts can overlap. ${count(group.uncoded)} uncoded Available rows and ${count(group.statusConflict)} conflicting status keys were also excluded.`);
 
     const prompt = 'Hover or focus an area to see its budget counts and fee coverage.';
