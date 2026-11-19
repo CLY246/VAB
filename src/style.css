@@ -115,6 +115,11 @@ main section[id], .tab-panel[id] { scroll-margin-top: 84px; }
 .dashboard-copy h4 { color: white; margin: 18px 0 4px; }
 .dashboard-reference { font-size: .85rem; }
 .tableau-frame { margin-block: 22px; border: 1px solid #527181; background: #16344a; }
+.tableau-frame[data-tableau="affordability"] {
+  /* Reclaim enough of the section's 18 px side gutters for the fixed canvas. */
+  margin-inline: clamp(-18px, (100% - 1440px) / 2, 0px);
+  border-inline: 0;
+}
 .tableau-tools { display: flex; flex-wrap: wrap; gap: 6px 20px; padding: 10px 14px; font-size: .85rem; }
 .tableau-tools a { color: white; font-weight: 700; }
 .tableau-frame .loader { padding: 10px 14px; margin: 0; color: white; font-size: .85rem; }

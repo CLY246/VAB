@@ -126,11 +126,20 @@ function availabilityChart(container, data) {
       }).join('');
       return `M${top[0]}${curve(top)}L${bottom[0]}${curve(bottom)}Z`;
     }
-    const pathLabel = (d) => `${dates.map((date, i) => `${date} · ${statuses[d.codes[i]]}`).join(' → ')}. ${count(d.n)} options (${percent(d.n, total)}). ${overlap}`;
+    const centreLabel = (d) => {
+      const centre = d.n === 1 ? group.singleCentres?.[d.key] : null;
+      return centre ? `${centre.name} · ${centre.area ?? 'Planning area unavailable'}` : '';
+    };
+    const pathLabel = (d) => {
+      const centre = centreLabel(d);
+      const sequence = dates.map((date, i) => `${date} · ${statuses[d.codes[i]]}`).join(' → ');
+      return `${centre ? `${centre}. ` : ''}${sequence}. ${count(d.n)} ${d.n === 1 ? 'option' : 'options'} (${percent(d.n, total)}). ${overlap}`;
+    };
     let pinned = null;
     const marks = ui.svg.selectAll('.ribbon').data(paths).join('path').attr('class', 'ribbon')
       .attr('d', ribbon).attr('fill', (d) => colours[d.codes[0]])
       .attr('tabindex', 0).attr('role', 'button').attr('aria-label', pathLabel);
+    marks.filter((d) => centreLabel(d)).append('title').text(centreLabel);
     function highlight(active = pinned) {
       marks.classed('dimmed', (d) => active && d !== active)
         .classed('highlighted', (d) => d === active)

@@ -17,6 +17,7 @@ function publishedView(title, path, width, height) {
 
 export const tableauViews = {
   geography: publishedView('Geographical Access', '2026-11-16-Visualisation_1_final/PreschoolAvailability', 1440, 1527),
-  affordability: publishedView('Affordability and Availability', '2026-11-17-Visualisation_2_final/Dashboard2', 1380, 877),
+  // Dashboard 2's fixed 1440 × 960 canvas plus the 27 px Tableau toolbar.
+  affordability: publishedView('Affordability and Availability', '2026-11-17-Visualisation_2_final/Dashboard2', 1440, 987),
   persistence: publishedView('Persistent Constraints', '2026-11-18-Visualisation_3_final/Dashboard3-PersistentPreschoolConstraints', 1440, 993),
 };

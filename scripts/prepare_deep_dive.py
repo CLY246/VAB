@@ -39,19 +39,28 @@ def availability():
     dates = sorted({k[3] for k in reports})
     assert len(dates) == 5
     months = sorted(set.intersection(*({month(d, i) for i in range(7)} for d in dates)))
+    areas = defaultdict(set)
+    for row in rows(DATA / 'Processed/affordability_availability.csv'):
+        area = row['planning_area'].strip()
+        if row['snapshot_date'] == dates[-1] and area:
+            areas[code(row['centre_code'])].add(area)
+    names = defaultdict(set)
     raw = defaultdict(set)
     uncoded = Counter()
     duplicates = 0
     for date in dates:
         _, mm, dd = date.split('-')
         for row in rows(DATA / f'Raw/ListingofCentres {dd}-{mm}.csv'):
+            centre = code(row['centre_code'])
+            name = row['centre_name'].strip()
+            if date == dates[-1] and centre and name:
+                names[centre].add(name)
             for programme, label in PROGRAMMES.items():
                 for i, period in enumerate(PERIODS):
                     start = month(date, i)
                     if start not in months:
                         continue
                     status = row[f'{programme.lower()}_vacancy_{period.lower()}_month']
-                    centre = code(row['centre_code'])
                     if not centre:
                         uncoded[label, start] += status in STATUSES
                         continue
@@ -64,6 +73,7 @@ def availability():
     for label in PROGRAMMES.values():
         for start in months:
             paths = Counter()
+            path_centres = {}
             excluded = Counter()
             matched_keys = set()
             for centre, programme, intended in sorted(candidates):
@@ -84,15 +94,25 @@ def availability():
                     continue
                 assert all(raw[key] == reports[key] for key in keys), keys
                 matched_keys.update(keys)
-                paths[''.join(str(STATUSES.index(next(iter(s)))) for s in values)] += 1
+                path = ''.join(str(STATUSES.index(next(iter(s)))) for s in values)
+                paths[path] += 1
+                path_centres[path] = centre
 
             total = sum(paths.values())
             assert all(sum(n for p, n in paths.items() if p[i] == str(s)) ==
                        sum(key[3] == date and raw[key] == {status} for key in matched_keys)
                        for i, date in enumerate(dates) for s, status in enumerate(STATUSES))
+            single_centres = {}
+            for path, n in sorted(paths.items()):
+                if n == 1:
+                    centre = path_centres[path]
+                    single_centres[path] = {
+                        'name': next(iter(names[centre])) if len(names[centre]) == 1 else centre,
+                        'area': next(iter(areas[centre])) if len(areas[centre]) == 1 else None,
+                    }
             groups.setdefault(label, {})[start] = {
                 'paths': sorted(paths.items()), 'excluded': dict(sorted(excluded.items())),
-                'uncoded': uncoded[label, start],
+                'uncoded': uncoded[label, start], 'singleCentres': single_centres,
             }
             assert total * len(dates) == len(matched_keys)
     assert sum(sum(n for _, n in g['paths']) for m in groups.values() for g in m.values()) * 5 == len(reports)
