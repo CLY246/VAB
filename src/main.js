@@ -113,6 +113,7 @@ app.innerHTML = `
           <p class="section-note">Each Tableau workbook has its own controls. Selections apply within that workbook.</p>
         </div>
         <div class="tabs">
+          <p class="dashboard-picker-label">Choose a dashboard to explore</p>
           <div class="tab-list" role="tablist" aria-label="Preschool access dashboards">
             ${dashboardEntries.map(([key, view], index) => `<button id="tab-${key}" role="tab" aria-selected="${index === 0}" aria-controls="panel-${key}" tabindex="${index === 0 ? 0 : -1}" data-tab="${key}">${view.title}</button>`).join('')}
           </div>

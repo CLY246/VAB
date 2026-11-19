@@ -7,8 +7,8 @@ const novemberPlaygroup = 'Playgroup · November 2026 start · Limited or Full �
 
 const geographyInsight = 'Tampines had 71 centres reporting Available or Limited for 14,830 resident children aged 0–4, or 4.79 per 1,000. Jurong East had 26 for 1,800, or 14.44 per 1,000.';
 const feeInsight = 'At S$650, 972 of 1,712 offering centres were within the fee limit. Of these, 749 reported Available or Limited and 223 reported Full. At S$1,820, 971 of 1,712 reported Available or Limited within the limit, a gain of 222.';
-const persistenceInsight = 'Of 1,652 matched options, 969 (58.7%) reported Limited or Full at all five checks, 63 (3.8%) at one to four checks, and 620 (37.5%) at none.';
-const timingInsight = 'The persistent Limited-or-Full share was 58.7% for November (969 of 1,652) and 39.0% for January (644 of 1,652), a difference of 19.7 percentage points across the same matched centres.';
+const persistenceInsight = 'Of 1,652 matched options, 987 (59.7%) reported Limited or Full at all five checks, 37 (2.2%) at one to four checks, and 628 (38.0%) at none.';
+const timingInsight = 'The persistent Limited-or-Full share was 59.7% for November starts (987 of 1,652), compared with 42.2% for January starts (697 of 1,652)—a difference of 17.6 percentage points.';
 const schemeInsight = 'Persistent Limited-or-Full rates were 75.0% for Anchor Operators (461/615), 53.3% for Partner Operators (203/381) and 46.5% for Scheme unlisted (305/656).';
 
 export const dashboardCopy = {
@@ -94,18 +94,17 @@ export const deepDiveNotes = [
   },
   {
     title: 'Operator scheme added the most information within the model',
-    selection: 'Matched options with positive listed fees · Multiple programmes and intended start months · Limited or Full at all five snapshots',
+    selection: 'Matched options with positive listed fees · Multiple programmes and intended start months · Limited-or-Full and Full-only definitions',
     paragraphs: [
-      'Among the five characteristics examined, removing operator scheme produced the largest reduction in model discrimination (4.55 AUC points). Scheme added useful information alongside planning area, programme level, intended start month and listed fee.',
-      'The supplied overall AUC estimate of approximately 0.62 suggests modest discrimination. The model supports further investigation of scheme differences. It cannot establish causes or reliably forecast future availability.',
+      'Removing operator scheme was associated with the largest reported reduction in AUC for both definitions of persistent constraints.',
       'Open Persistent Constraints and select View Model Findings inside Tableau.',
     ],
     detail: {
       title: 'How the model comparison works',
       paragraphs: [
-        'The supplied analysis describes a logistic regression comparison. Validation held out entire centres. A drop of 4.55 AUC points is 0.0455 on the AUC scale. Using the supplied baseline of about 0.620 implies an AUC of about 0.5745 without scheme. The workbook export reports the drop, but omits the absolute AUC values.',
-        'AUC measures how well the model ranks persistently constrained options above other options. An AUC of 0.62 cannot be read as 62% classification accuracy. The 4.55-point contribution cannot be interpreted as a share of constraints explained or a change in an individual centre’s risk.',
-        'These are saved overall model results. Dashboard controls do not retrain the model. The result does not measure parents’ preferences.',
+        'The supplied analysis describes a logistic regression comparison validated by holding out entire centres. In this workbook, removing operator scheme is associated with the largest reported reduction in AUC: 5.26 AUC points (0.0526) for persistent Limited-or-Full status and 1.01 points (0.0101) for persistent Full-only status.',
+        'AUC measures how well a model ranks persistently constrained options above other options. These contributions are not classification accuracy, percentages of constraints explained, or causal effects.',
+        'These are saved overall results; dashboard controls do not retrain the model. They do not measure parents’ preferences. The workbook does not include the training code or absolute AUC values, so the reported contributions have not been independently reproduced.',
       ],
     },
     dashboard: 'persistence',
