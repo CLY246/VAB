@@ -2,14 +2,13 @@ const novemberNursery = 'Nursery 1 · November 2026 start · 14 November 2026 sn
 const januaryFees = 'Nursery 1 · January 2027 start · 14 November 2026 snapshot';
 const listedFeeBasis = 'Fees are listed Singapore Citizen full-day monthly fees before subsidy and GST.';
 const feeReference = januaryFees + ' · All areas and schemes · S$650 and S$1,820 monthly ceilings';
-const period = 'Five snapshots from 12 October to 14 November 2026';
+const period = 'Five listing files collected between 12 October and 14 November 2026';
 const novemberPlaygroup = 'Playgroup · November 2026 start · Limited or Full · ' + period;
 
 const geographyInsight = 'Tampines had 71 centres reporting Available or Limited for 14,830 resident children aged 0–4, or 4.79 per 1,000. Jurong East had 26 for 1,800, or 14.44 per 1,000.';
 const feeInsight = 'At S$650, 972 of 1,712 offering centres were within the fee limit. Of these, 749 reported Available or Limited and 223 reported Full. At S$1,820, 971 of 1,712 reported Available or Limited within the limit, a gain of 222.';
 const persistenceInsight = 'Of 1,652 matched options, 987 (59.7%) reported Limited or Full at all five checks, 37 (2.2%) at one to four checks, and 628 (38.0%) at none.';
 const timingInsight = 'The persistent Limited-or-Full share was 59.7% for November starts (987 of 1,652), compared with 42.2% for January starts (697 of 1,652)—a difference of 17.6 percentage points.';
-const schemeInsight = 'Persistent Limited-or-Full rates were 75.0% for Anchor Operators (461/615), 53.3% for Partner Operators (203/381) and 46.5% for Scheme unlisted (305/656).';
 
 export const dashboardCopy = {
   geography: {
@@ -40,13 +39,13 @@ export const dashboardCopy = {
   persistence: {
     question: 'How persistent are reported preschool availability constraints, and how do they differ by intended start month and operator scheme?',
     purpose: 'Track matched centre–programme options by intended month, programme, operator scheme and planning area. The dashboard shows how often the selected constraint definition is met and links to saved model findings.',
-    scope: period + '. Intended start months run from November 2026 to April 2027.',
+    scope: period + '. Intended start months covered by the five-snapshot comparison run from November 2026 to March 2027.',
     controls: 'Use Constraint definition and Programme focus. Select an intended month on the trend, then use Planning region and Area measure to explore geography. Use View Model Findings and Return within Tableau.',
     selection: 'Playgroup · November 2026 and January 2027 starts · Limited or Full · ' + period,
     insights: [
       'November. ' + persistenceInsight,
       timingInsight,
-      'November Playgroup. ' + schemeInsight + ' Anchor Operators had the highest share in each of the four November programme comparisons.',
+      'For November 2026 Playgroup starts, the share of matched options reporting Limited or Full at all five snapshots was 75.6% for Anchor Operators, 54.6% for Partner Operators and 47.9% for centres with neither scheme recorded. The groups contained 615, 381 and 656 matched options respectively. Anchor Operators had the highest persistent Limited-or-Full share across all four programmes for November starts.',
     ],
     implication: 'Repeated reports reveal patterns that a single check can miss. The one-to-four group counts checks meeting the combined definition. An option can switch between Limited and Full while meeting that definition at every check.',
     chart: 'availability-paths',
