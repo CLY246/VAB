@@ -12,6 +12,13 @@ LEVELS = dict(zip(PROGRAMMES, ('Infant (2 to 18 mths)', 'Playgroup (18 mths to 2
                                'Pre-Nursery (3 yrs old)', 'Nursery (4 yrs old)')))
 PERIODS = ['Current', 'Next', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh']
 STATUSES = ['Available', 'Limited', 'Full']
+LISTING_MONTHS = {
+    '2026-10-12': '2026-09',
+    '2026-10-19': '2026-10',
+    '2026-10-24': '2026-10',
+    '2026-11-01': '2026-11',
+    '2026-11-14': '2026-11',
+}
 
 
 def rows(path, encoding='utf-8-sig', delimiter=','):
@@ -33,12 +40,14 @@ def availability():
     reports = defaultdict(set)
     for row in rows(DATA / 'Processed/preschool_factor_analysis.csv', 'utf-16', '\t'):
         if row['Data section'] == 'Reports':
-            key = (row['Centre code'], row['Programme'], row['Enrolment month'], row['Snapshot date'])
+            date = row['Snapshot date']
+            offset = (int(row['Enrolment month'][:4]) - int(date[:4])) * 12 + int(row['Enrolment month'][5:7]) - int(date[5:7])
+            key = (row['Centre code'], row['Programme'], month(LISTING_MONTHS[date], offset), date)
             assert key not in reports, ('Duplicate factor report', key)
             reports[key].add(row['Reported status'])
     dates = sorted({k[3] for k in reports})
-    assert len(dates) == 5
-    months = sorted(set.intersection(*({month(d, i) for i in range(7)} for d in dates)))
+    assert dates == sorted(LISTING_MONTHS), dates
+    months = sorted(set.intersection(*({month(LISTING_MONTHS[d], i) for i in range(7)} for d in dates)))
     areas = defaultdict(set)
     for row in rows(DATA / 'Processed/affordability_availability.csv'):
         area = row['planning_area'].strip()
@@ -57,7 +66,7 @@ def availability():
                 names[centre].add(name)
             for programme, label in PROGRAMMES.items():
                 for i, period in enumerate(PERIODS):
-                    start = month(date, i)
+                    start = month(LISTING_MONTHS[date], i)
                     if start not in months:
                         continue
                     status = row[f'{programme.lower()}_vacancy_{period.lower()}_month']
@@ -115,7 +124,7 @@ def availability():
                 'uncoded': uncoded[label, start], 'singleCentres': single_centres,
             }
             assert total * len(dates) == len(matched_keys)
-    assert sum(sum(n for _, n in g['paths']) for m in groups.values() for g in m.values()) * 5 == len(reports)
+    assert sum(sum(n for _, n in g['paths']) for m in groups.values() for g in m.values()) * 5 == sum(k[2] in months for k in reports)
     print('Availability factor report keys:', len(reports), 'raw duplicate coded report rows:', duplicates)
     return {'dates': dates, 'groups': groups}
 

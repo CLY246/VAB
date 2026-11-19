@@ -113,11 +113,11 @@ export const deepDiveNotes = [
 ];
 
 export const availabilityPathNote = {
-  title: 'November Playgroup · From the first Full report to the final check',
-  selection: 'Playgroup · November 2026 start · 12 October and 14 November 2026 endpoints',
+  title: 'November Playgroup · From a Full report at the first listing to the last',
+  selection: 'Playgroup · November 2026 start · first listing (content to 24 September, downloaded 12 October) and 14 November 2026',
   paragraphs: [
-    'Additional analysis of the matched paths in the local D3 data. Of 592 options reporting Full at the first snapshot, 12 (2.0%) reported Available at the final snapshot, 51 reported Limited and 529 reported Full.',
-    'Of the 529 reporting Full at both endpoints, 519 reported Full at every check and 10 changed status in between. The local parallel sets chart shows those intermediate checks. The Tableau persistence dashboard groups options by how often they met the selected definition.',
+    'Of 595 options reporting Full at the first listing, 13 (2.2%) reported Available at the last listing, 41 reported Limited and 541 reported Full.',
+    'Of the 541 reporting Full at both ends, 531 reported Full at every listing and 10 changed status in between. The Tableau persistence dashboard groups options by how many listings met the definition; this chart shows the order of the changes.',
   ],
 };
 
